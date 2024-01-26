@@ -3,11 +3,12 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import subprocess
 
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("iCACode 1.0")
+        self.root.title("iCACode 1.1")
         self.dark_theme = False  # Variable to track the theme
         self.language = "plain"  # Default language (no syntax highlighting)
         self.create_widgets()
@@ -70,6 +71,13 @@ class CodeEditor:
         language_menu.add_command(label="Python", command=lambda: self.change_language("python"))
         language_menu.add_command(label="Plain Text", command=lambda: self.change_language("plain"))
 
+        # Execute Menu
+        execute_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Execute", menu=execute_menu)
+        execute_menu.add_command(label="Python", command=lambda: self.execute_file("python"))
+        execute_menu.add_command(label="JavaScript", command=lambda: self.execute_file("javascript"))
+        execute_menu.add_command(label="C/C++", command=lambda: self.execute_file("c_cpp"))
+
         # Update the directory tree
         self.update_treeview()
 
@@ -79,6 +87,9 @@ class CodeEditor:
         # Connect syntax highlighting function to text modification event
         self.text_widget.bind("<KeyRelease>", self.highlight_syntax)
 
+        # Connect right-click event for deleting files
+        self.text_widget.bind("<Button-3>", self.show_context_menu)
+
         # Connect keyboard shortcuts
         self.root.bind('<Control-s>', lambda event: self.save_file())
         self.root.bind('<Control-Alt-s>', lambda event: self.save_file_as())
@@ -86,7 +97,7 @@ class CodeEditor:
 
     def new_file(self):
         self.text_widget.delete("1.0", tk.END)
-        self.root.title("iCACode 1.0")
+        self.root.title("iCACode 1.1")
 
     def open_file(self):
         file_path = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -95,14 +106,14 @@ class CodeEditor:
                 content = file.read()
                 self.text_widget.delete("1.0", tk.END)
                 self.text_widget.insert(tk.END, content)
-                self.root.title(f"iCACode 1.0 - {file_path}")
+                self.root.title(f"iCACode 1.1 - {file_path}")
 
     def save_file(self):
         if hasattr(self, 'current_file'):
             with open(self.current_file, "w") as file:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
-                self.root.title(f"iCACode 1.0 - {self.current_file}")
+                self.root.title(f"iCACode 1.1 - {self.current_file}")
         else:
             self.save_file_as()
 
@@ -113,10 +124,10 @@ class CodeEditor:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
                 self.current_file = file_path
-                self.root.title(f"iCACode 1.0 - {file_path}")
+                self.root.title(f"iCACode 1.1 - {file_path}")
 
     def show_version(self):
-        tk.messagebox.showinfo("Version", "iCACode 1.0")
+        tk.messagebox.showinfo("Version", "iCACode 1.1")
 
     def update_treeview(self):
         # Clear the existing directory tree
@@ -143,7 +154,7 @@ class CodeEditor:
                     content = file.read()
                     self.text_widget.delete("1.0", tk.END)
                     self.text_widget.insert(tk.END, content)
-                    self.root.title(f"iCACode 1.0 - {file_path}")
+                    self.root.title(f"iCACode 1.1 - {file_path}")
 
     def delete_file(self):
         # Get the selected item in the directory tree
@@ -162,6 +173,8 @@ class CodeEditor:
                     # Delete the file
                     os.remove(file_path)
                     messagebox.showinfo("Success", f"File '{item_text}' deleted successfully.")
+                    # Update the directory tree
+                    self.update_treeview()
                 except Exception as e:
                     messagebox.showerror("Error", f"Error deleting file '{item_text}': {str(e)}")
 
@@ -170,7 +183,7 @@ class CodeEditor:
         if directory_path:
             os.chdir(directory_path)
             self.update_treeview()
-            self.root.title(f"iCACode 1.0 - {directory_path}")
+            self.root.title(f"iCACode 1.1 - {directory_path}")
 
     def toggle_theme(self):
         # Toggle between light and dark themes
@@ -236,6 +249,25 @@ class CodeEditor:
     def handle_directory_event(self, event):
         # Update the directory tree when there is a change in the directory
         self.update_treeview()
+
+    def execute_file(self, language):
+        # Execute the current file using the selected language
+        if hasattr(self, 'current_file'):
+            if language == "python" and self.current_file.endswith(".py"):
+                subprocess.run(["python", self.current_file])
+            elif language == "javascript" and self.current_file.endswith(".js"):
+                subprocess.run(["node", self.current_file])
+            elif language == "c_cpp" and (self.current_file.endswith(".c") or self.current_file.endswith(".cpp")):
+                subprocess.run(["gcc", "-o", "output", self.current_file])
+                subprocess.run(["./output"])
+            else:
+                messagebox.showwarning("Execution Warning", f"Cannot execute file with {language}.")
+
+    def show_context_menu(self, event):
+        # Show context menu for right-click event
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_command(label="Delete File", command=self.delete_file)
+        menu.post(event.x_root, event.y_root)
 
 if __name__ == "__main__":
     root = tk.Tk()
