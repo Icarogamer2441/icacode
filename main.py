@@ -8,11 +8,21 @@ import subprocess
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("iCACode 1.1")
-        self.dark_theme = False  # Variable to track the theme
-        self.language = "plain"  # Default language (no syntax highlighting)
+        self.root.title("iCACode 1.2")
+        self.themes = {
+            "Default": {"background": "#f0f0f0", "foreground": "#000000", "fieldbackground": "#f0f0f0", "selected": "#0078d4"},
+            "Dark": {"background": "#2E2E2E", "foreground": "#FFFFFF", "fieldbackground": "#2E2E2E", "selected": "#0078d4"},
+            "Green": {"background": "#00FF00", "foreground": "#000000", "fieldbackground": "#00FF00", "selected": "#0078d4"},
+            "Blue": {"background": "#0000FF", "foreground": "#FFFFFF", "fieldbackground": "#0000FF", "selected": "#0078d4"},
+            "Red": {"background": "#FF0000", "foreground": "#FFFFFF", "fieldbackground": "#FF0000", "selected": "#0078d4"},
+            "Purple": {"background": "#800080", "foreground": "#FFFFFF", "fieldbackground": "#800080", "selected": "#0078d4"},
+            "Orange": {"background": "#FFA500", "foreground": "#000000", "fieldbackground": "#FFA500", "selected": "#0078d4"}
+        }
+        self.selected_theme = "Default"
+        self.language = "plain"  # Inicializando a variável language
         self.create_widgets()
         self.setup_directory_observer()
+        self.treeview_open = True
 
     def create_widgets(self):
         # Main frame
@@ -20,7 +30,7 @@ class CodeEditor:
         main_frame.pack(fill="both", expand=True)
 
         # Treeview to display directory tree
-        self.treeview = ttk.Treeview(main_frame, style="Treeview")
+        self.treeview = ttk.Treeview(main_frame, style="Custom.Treeview")
         self.treeview.pack(side="left", fill="both", expand=True)
 
         # Add a scrollbar to the Treeview
@@ -39,7 +49,6 @@ class CodeEditor:
         menu_bar = tk.Menu(root)
         root.config(menu=menu_bar)
 
-        # File Menu
         file_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="New", command=self.new_file)
@@ -51,7 +60,15 @@ class CodeEditor:
         file_menu.add_separator()
         file_menu.add_command(label="Open Directory", command=self.open_directory)
         file_menu.add_separator()
+
+        # Subsubmenu para o botão "Back"
+        back_submenu = tk.Menu(file_menu, tearoff=0)
+        back_submenu.add_command(label="Back", command=self.navigate_back)
+        file_menu.add_cascade(label="Navigate", menu=back_submenu)
+
+        file_menu.add_separator()
         file_menu.add_command(label="Exit", command=root.destroy)
+
 
         # Advanced Menu
         advanced_menu = tk.Menu(menu_bar, tearoff=0)
@@ -59,6 +76,12 @@ class CodeEditor:
         advanced_menu.add_command(label="Show Version", command=self.show_version)
         advanced_menu.add_command(label="Reload Tree", command=self.update_treeview)
         advanced_menu.add_command(label="Toggle Theme", command=self.toggle_theme)
+        advanced_menu.add_command(label="Close Treeview", command=self.toggle_treeview)
+        advanced_menu.add_separator()
+        theme_menu = tk.Menu(advanced_menu, tearoff=0)
+        advanced_menu.add_cascade(label="Select Theme", menu=theme_menu)
+        for theme_name in self.themes.keys():
+            theme_menu.add_command(label=theme_name, command=lambda name=theme_name: self.select_theme(name))
 
         # Language Menu
         language_menu = tk.Menu(menu_bar, tearoff=0)
@@ -94,10 +117,27 @@ class CodeEditor:
         self.root.bind('<Control-s>', lambda event: self.save_file())
         self.root.bind('<Control-Alt-s>', lambda event: self.save_file_as())
         self.root.bind('<Control-o>', lambda event: self.open_directory())
+    
+    def toggle_treeview(self):
+        if self.treeview_open:
+            self.treeview.pack_forget()
+            self.treeview_open = False
+        else:
+            self.treeview.pack(side="left", fill="both", expand=True)
+            self.treeview_open = True
+        
+    def navigate_back(self):
+        current_directory = os.getcwd()
+        parent_directory = os.path.dirname(current_directory)
+    
+        if current_directory != parent_directory:
+            os.chdir(parent_directory)
+            self.update_treeview()
+            self.root.title(f"iCACode 1.2 - {parent_directory}")
 
     def new_file(self):
         self.text_widget.delete("1.0", tk.END)
-        self.root.title("iCACode 1.1")
+        self.root.title("iCACode 1.2")
 
     def open_file(self):
         file_path = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -106,14 +146,14 @@ class CodeEditor:
                 content = file.read()
                 self.text_widget.delete("1.0", tk.END)
                 self.text_widget.insert(tk.END, content)
-                self.root.title(f"iCACode 1.1 - {file_path}")
+                self.root.title(f"iCACode 1.2 - {file_path}")
 
     def save_file(self):
         if hasattr(self, 'current_file'):
             with open(self.current_file, "w") as file:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
-                self.root.title(f"iCACode 1.1 - {self.current_file}")
+                self.root.title(f"iCACode 1.2 - {self.current_file}")
         else:
             self.save_file_as()
 
@@ -124,10 +164,10 @@ class CodeEditor:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
                 self.current_file = file_path
-                self.root.title(f"iCACode 1.1 - {file_path}")
+                self.root.title(f"iCACode 1.2 - {file_path}")
 
     def show_version(self):
-        tk.messagebox.showinfo("Version", "iCACode 1.1")
+        tk.messagebox.showinfo("Version", "iCACode 1.2")
 
     def update_treeview(self):
         # Clear the existing directory tree
@@ -137,8 +177,15 @@ class CodeEditor:
         # Get the list of files and directories in the current directory
         current_directory = os.getcwd()
         for item in os.listdir(current_directory):
-            # Add each item to the tree
-            self.treeview.insert("", "end", text=item, open=True)
+            item_path = os.path.join(current_directory, item)
+            is_directory = os.path.isdir(item_path)
+            tags = ("directory",) if is_directory else ("file",)
+            self.treeview.insert("", "end", text=item, open=True, tags=tags)
+            
+            # Tagging directories with the "directory" tag
+            if is_directory:
+                self.treeview.tag_configure("directory", foreground="#0000FF")
+
 
     def update_editor(self, event):
         # Get the selected item in the directory tree
@@ -147,14 +194,18 @@ class CodeEditor:
             # Get the text of the selected item
             item_text = self.treeview.item(selected_item, "text")
 
-            # Open the selected file and display its content in the editor
-            file_path = os.path.join(os.getcwd(), item_text)
-            if os.path.isfile(file_path):
-                with open(file_path, "r") as file:
+            # Open the selected file or directory
+            item_path = os.path.join(os.getcwd(), item_text)
+            if os.path.isfile(item_path):
+                with open(item_path, "r") as file:
                     content = file.read()
                     self.text_widget.delete("1.0", tk.END)
                     self.text_widget.insert(tk.END, content)
-                    self.root.title(f"iCACode 1.1 - {file_path}")
+                    self.root.title(f"iCACode 1.2 - {item_path}")
+            elif os.path.isdir(item_path):
+                os.chdir(item_path)
+                self.update_treeview()
+                self.root.title(f"iCACode 1.2 - {item_path}")
 
     def delete_file(self):
         # Get the selected item in the directory tree
@@ -163,42 +214,50 @@ class CodeEditor:
             # Get the text of the selected item
             item_text = self.treeview.item(selected_item, "text")
 
-            # Build the path of the selected file
-            file_path = os.path.join(os.getcwd(), item_text)
+            # Build the path of the selected file or directory
+            item_path = os.path.join(os.getcwd(), item_text)
 
             # Display a confirmation message
-            confirmation = messagebox.askyesno("Confirmation", f"Are you sure you want to delete the file '{item_text}'?")
+            confirmation = messagebox.askyesno("Confirmation", f"Are you sure you want to delete the { 'file' if os.path.isfile(item_path) else 'directory'} '{item_text}'?")
             if confirmation:
                 try:
-                    # Delete the file
-                    os.remove(file_path)
-                    messagebox.showinfo("Success", f"File '{item_text}' deleted successfully.")
+                    # Delete the file or directory
+                    if os.path.isfile(item_path):
+                        os.remove(item_path)
+                    elif os.path.isdir(item_path):
+                        os.rmdir(item_path)
+                    messagebox.showinfo("Success", f"{ 'File' if os.path.isfile(item_path) else 'Directory'} '{item_text}' deleted successfully.")
                     # Update the directory tree
                     self.update_treeview()
                 except Exception as e:
-                    messagebox.showerror("Error", f"Error deleting file '{item_text}': {str(e)}")
+                    messagebox.showerror("Error", f"Error deleting { 'file' if os.path.isfile(item_path) else 'directory'} '{item_text}': {str(e)}")
 
     def open_directory(self):
         directory_path = filedialog.askdirectory()
         if directory_path:
             os.chdir(directory_path)
             self.update_treeview()
-            self.root.title(f"iCACode 1.1 - {directory_path}")
+            self.root.title(f"iCACode 1.2 - {directory_path}")
 
     def toggle_theme(self):
-        # Toggle between light and dark themes
-        self.dark_theme = not self.dark_theme
+        # Toggle between different themes
+        themes_list = list(self.themes.keys())
+        current_index = themes_list.index(self.selected_theme)
+        next_index = (current_index + 1) % len(themes_list)
+        next_theme = themes_list[next_index]
+        self.select_theme(next_theme)
 
-        if self.dark_theme:
-            self.root.tk_setPalette(background="#2E2E2E", foreground="#FFFFFF")
-            style = ttk.Style(self.root)
-            style.configure("Treeview", background="#2E2E2E", foreground="#FFFFFF", fieldbackground="#2E2E2E")
-            style.map("Treeview", background=[("selected", "#0078d4")])
-        else:
-            self.root.tk_setPalette(background="#f0f0f0", foreground="#000000")
-            style = ttk.Style(self.root)
-            style.configure("Treeview", background="#f0f0f0", foreground="#000000", fieldbackground="#f0f0f0")
-            style.map("Treeview", background=[("selected", "#0078d4")])
+    def select_theme(self, theme_name):
+        # Apply the selected theme
+        self.selected_theme = theme_name
+        theme = self.themes[theme_name]
+        self.root.tk_setPalette(
+            background=theme["background"],
+            foreground=theme["foreground"]
+        )
+        style = ttk.Style(self.root)
+        style.configure("Treeview", background=theme["background"], foreground=theme["foreground"], fieldbackground=theme["fieldbackground"])
+        style.map("Treeview", background=[("selected", theme["selected"])])
 
     def change_language(self, language):
         self.language = language
