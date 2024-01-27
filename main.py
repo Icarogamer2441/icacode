@@ -9,7 +9,7 @@ import subprocess
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("iCACode 1.3")
+        self.root.title("iCACode 1.4")
         self.themes = {
             "Default": {"background": "#f0f0f0", "foreground": "#000000", "fieldbackground": "#f0f0f0", "selected": "#0078d4"},
             "Dark": {"background": "#2E2E2E", "foreground": "#FFFFFF", "fieldbackground": "#2E2E2E", "selected": "#0078d4"},
@@ -25,7 +25,12 @@ class CodeEditor:
         self.setup_directory_observer()
         self.treeview_open = True
         self.editor_window = None
-
+        # Configuração de fonte e estilo para o Text widget
+        self.text_widget.configure(font=("Courier New", 12))
+        
+        # Adiciona um estilo para destacar a seleção
+        self.text_widget.tag_configure("selection", background="#ADD8E6")  # Cor de fundo azul-claro
+        
     def create_widgets(self):
         # Main frame
         main_frame = tk.Frame(self.root)
@@ -81,7 +86,7 @@ class CodeEditor:
         advanced_menu.add_command(label="Show Version", command=self.show_version)
         advanced_menu.add_command(label="Reload Tree", command=self.update_treeview)
         advanced_menu.add_command(label="Toggle Theme", command=self.toggle_theme)
-        advanced_menu.add_command(label="Close Treeview", command=self.toggle_treeview)
+        advanced_menu.add_command(label="Toggle Treeview", command=self.toggle_treeview)
         advanced_menu.add_separator()
         theme_menu = tk.Menu(advanced_menu, tearoff=0)
         advanced_menu.add_cascade(label="Select Theme", menu=theme_menu)
@@ -105,6 +110,12 @@ class CodeEditor:
         execute_menu.add_command(label="Python", command=lambda: self.execute_file("python"))
         execute_menu.add_command(label="JavaScript", command=lambda: self.execute_file("javascript"))
         execute_menu.add_command(label="C/C++", command=lambda: self.execute_file("c_cpp"))
+        
+        # Edit Menu
+        edit_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Search", command=self.search)
+        edit_menu.add_command(label="Search Files/Folders", command=self.search_files_folders)
 
         # Update the directory tree
         self.update_treeview()
@@ -123,9 +134,40 @@ class CodeEditor:
         self.root.bind('<Control-Alt-s>', lambda event: self.save_file_as())
         self.root.bind('<Control-o>', lambda event: self.open_directory())
         self.root.bind('<Control-b>', lambda event: self.navigate_back())
+        self.root.bind('<Control-a>', lambda event: self.select_all_text(event))
         
         self.root.bind('<Up>', lambda event: self.navigate_directory(-1))
         self.root.bind('<Down>', lambda event: self.navigate_directory(1))
+    
+    def select_all_text(self, event):
+        self.text_widget.tag_add(tk.SEL, "1.0", tk.END)
+    
+    def search_files_folders(self):
+        search_term = simpledialog.askstring("Search", "Enter search term:")
+        if search_term:
+            self.treeview.delete(*self.treeview.get_children())  # Limpa a árvore de diretórios
+
+            current_directory = os.getcwd()
+            for item in os.listdir(current_directory):
+                if search_term.lower() in item.lower():
+                    self.treeview.insert("", "end", text=item, open=True)
+    
+    def select_all_text(self, event):
+        self.text_widget.tag_add(tk.SEL, "1.0", tk.END)
+    
+    def search(self):
+        # Implementa a funcionalidade de pesquisa
+        search_text = simpledialog.askstring("Search", "Enter text to search:")
+        if search_text:
+            start_index = "1.0"
+            while True:
+                start_index = self.text_widget.search(search_text, start_index, stopindex=tk.END)
+                if not start_index:
+                    break
+                end_index = f"{start_index}+{len(search_text)}c"
+                self.text_widget.tag_add("search", start_index, end_index)
+                start_index = end_index
+            self.text_widget.tag_config("search", background="yellow")
 
     def open_icacode(self):
         icacode_path = os.path.abspath(__file__)  # Caminho absoluto do script iCACode
@@ -172,7 +214,7 @@ class CodeEditor:
     
     def create_new_folder(self):
         # Abre uma caixa de diálogo para inserir o nome da nova pasta
-        folder_name = filedialog.askstring("New Folder", "Enter the name of the new folder:")
+        folder_name = simpledialog.askstring("New Folder", "Enter the name of the new folder:")
         if folder_name:
             try:
                 # Cria a nova pasta
@@ -198,11 +240,11 @@ class CodeEditor:
         if current_directory != parent_directory:
             os.chdir(parent_directory)
             self.update_treeview()
-            self.root.title(f"iCACode 1.3 - {parent_directory}")
+            self.root.title(f"iCACode 1.4 - {parent_directory}")
 
     def new_file(self):
         self.text_widget.delete("1.0", tk.END)
-        self.root.title("iCACode 1.3")
+        self.root.title("iCACode 1.4")
 
     def open_file(self):
         file_path = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -218,7 +260,7 @@ class CodeEditor:
             with open(self.current_file, "w") as file:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
-                self.root.title(f"iCACode 1.3 - {self.current_file}")
+                self.root.title(f"iCACode 1.4 - {self.current_file}")
         else:
             self.save_file_as()
 
@@ -229,10 +271,10 @@ class CodeEditor:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
                 self.current_file = file_path
-                self.root.title(f"iCACode 1.3 - {file_path}")
+                self.root.title(f"iCACode 1.4 - {file_path}")
 
     def show_version(self):
-        tk.messagebox.showinfo("Version", "iCACode 1.3")
+        tk.messagebox.showinfo("Version", "iCACode 1.4")
 
     def update_treeview(self):
         # Clear the existing directory tree
@@ -266,11 +308,11 @@ class CodeEditor:
                     content = file.read()
                     self.text_widget.delete("1.0", tk.END)
                     self.text_widget.insert(tk.END, content)
-                    self.root.title(f"iCACode 1.3 - {item_path}")
+                    self.root.title(f"iCACode 1.4 - {item_path}")
             elif os.path.isdir(item_path):
                 os.chdir(item_path)
                 self.update_treeview()
-                self.root.title(f"iCACode 1.3 - {item_path}")
+                self.root.title(f"iCACode 1.4 - {item_path}")
 
     def delete_file(self):
         # Get the selected item in the directory tree
@@ -324,7 +366,7 @@ class CodeEditor:
         if directory_path:
             os.chdir(directory_path)
             self.update_treeview()
-            self.root.title(f"iCACode 1.3 - {directory_path}")
+            self.root.title(f"iCACode 1.4 - {directory_path}")
 
     def toggle_theme(self):
         # Toggle entre os temas existentes e o tema personalizado
