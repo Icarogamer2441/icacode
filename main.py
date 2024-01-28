@@ -9,7 +9,7 @@ import subprocess
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("iCACode 1.5")
+        self.root.title("iCACode 1.6")
         self.themes = {
             "Default": {"background": "#f0f0f0", "foreground": "#000000", "fieldbackground": "#f0f0f0", "selected": "#0078d4"},
             "Dark": {"background": "#2E2E2E", "foreground": "#FFFFFF", "fieldbackground": "#2E2E2E", "selected": "#0078d4"},
@@ -27,6 +27,32 @@ class CodeEditor:
         self.editor_window = None
         # Configuração de fonte e estilo para o Text widget
         self.text_widget.configure(font=("Courier New", 12))
+        
+        self.python_snippets = {
+            "if": "if condition:\n    # code",
+            "for": "for item in iterable:\n    # code",
+            "print": "print('Hello, World!')",
+            "def": "def funcname(etc):\n    #code",
+            "elif": "elif condition:\n    #code",
+            "else": "else:    #code",
+            "import": "import lib",
+            "from": "from lib import item",
+            "pygame": "import pygame as pg\nfrom pygame.locals import *\nimport sys\n",
+            "pygameinit": "pg.init()\n",
+            "pygamedrawrect": "pg.draw.rect(screenname, (r,g,b), (posx,posy,sizex,sizey))",
+            "pygamedrawcircle": "pg.draw.circle(screenname, (r,g,b), (posx,posy), radius",
+            "pygamescreen": "pg.display.set_mode((width,height))",
+            "pygamecaption": "pg.display.set_caption('window name')",
+            # Adicione mais snippets conforme necessário
+        }
+
+        # Snippets predefinidos para JavaScript
+        self.javascript_snippets = {
+            "if": "if (condition) {\n    // code\n}",
+            "for": "for (let i = 0; i < array.length; i++) {\n    // code\n}",
+            "console.log": "console.log('Hello, World!');",
+            # Adicione mais snippets conforme necessário
+        }
         
     def create_widgets(self):
         # Main frame
@@ -113,6 +139,7 @@ class CodeEditor:
         menu_bar.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Search", command=self.search)
         edit_menu.add_command(label="Search Files/Folders", command=self.search_files_folders)
+        edit_menu.add_command(label="Insert Snippet", command=self.insert_snippet)
         
         plugins_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Plugins", menu=plugins_menu)
@@ -141,6 +168,24 @@ class CodeEditor:
         
         self.root.bind('<Up>', lambda event: self.navigate_directory(-1))
         self.root.bind('<Down>', lambda event: self.navigate_directory(1))
+    
+    def insert_snippet(self):
+        language = self.language.lower()
+
+        if language == "python":
+            snippets = self.python_snippets
+        elif language == "javascript":
+            snippets = self.javascript_snippets
+        else:
+            messagebox.showwarning("Snippet Error", f"Snippets not available for {language.capitalize()}.")
+            return
+
+        snippet_name = simpledialog.askstring("Insert Snippet", "Enter snippet name:")
+        if snippet_name in snippets:
+            snippet_code = snippets[snippet_name]
+            self.text_widget.insert(tk.INSERT, snippet_code)
+        else:
+            messagebox.showwarning("Snippet Error", f"Snippet '{snippet_name}' not found.")
     
     def load_plugin(self):
         file_path = filedialog.askopenfilename(defaultextension=".py", filetypes=[("Python Files", "*.py"), ("All Files", "*.*")])
@@ -271,11 +316,11 @@ class CodeEditor:
         if current_directory != parent_directory:
             os.chdir(parent_directory)
             self.update_treeview()
-            self.root.title(f"iCACode 1.5 - {parent_directory}")
+            self.root.title(f"iCACode 1.6 - {parent_directory}")
 
     def new_file(self):
         self.text_widget.delete("1.0", tk.END)
-        self.root.title("iCACode 1.5")
+        self.root.title("iCACode 1.6")
 
     def open_file(self):
         file_path = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -284,14 +329,14 @@ class CodeEditor:
                 content = file.read()
                 self.text_widget.delete("1.0", tk.END)
                 self.text_widget.insert(tk.END, content)
-                self.root.title(f"iCACode 1.5 - {file_path}")
+                self.root.title(f"iCACode 1.6 - {file_path}")
 
     def save_file(self):
         if hasattr(self, 'current_file'):
             with open(self.current_file, "w") as file:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
-                self.root.title(f"iCACode 1.5 - {self.current_file}")
+                self.root.title(f"iCACode 1.6 - {self.current_file}")
         else:
             self.save_file_as()
 
@@ -302,10 +347,10 @@ class CodeEditor:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
                 self.current_file = file_path
-                self.root.title(f"iCACode 1.5 - {file_path}")
+                self.root.title(f"iCACode 1.6 - {file_path}")
 
     def show_version(self):
-        tk.messagebox.showinfo("Version", "iCACode 1.5")
+        tk.messagebox.showinfo("Version", "iCACode 1.6")
 
     def update_treeview(self):
         # Clear the existing directory tree
@@ -339,11 +384,11 @@ class CodeEditor:
                     content = file.read()
                     self.text_widget.delete("1.0", tk.END)
                     self.text_widget.insert(tk.END, content)
-                    self.root.title(f"iCACode 1.5 - {item_path}")
+                    self.root.title(f"iCACode 1.6 - {item_path}")
             elif os.path.isdir(item_path):
                 os.chdir(item_path)
                 self.update_treeview()
-                self.root.title(f"iCACode 1.5 - {item_path}")
+                self.root.title(f"iCACode 1.6 - {item_path}")
 
     def delete_file(self):
         # Get the selected item in the directory tree
@@ -397,7 +442,7 @@ class CodeEditor:
         if directory_path:
             os.chdir(directory_path)
             self.update_treeview()
-            self.root.title(f"iCACode 1.5 - {directory_path}")
+            self.root.title(f"iCACode 1.6 - {directory_path}")
 
     def toggle_theme(self):
         # Toggle entre os temas existentes e o tema personalizado
