@@ -9,7 +9,7 @@ import subprocess
 class CodeEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("iCACode 1.4")
+        self.root.title("iCACode 1.5")
         self.themes = {
             "Default": {"background": "#f0f0f0", "foreground": "#000000", "fieldbackground": "#f0f0f0", "selected": "#0078d4"},
             "Dark": {"background": "#2E2E2E", "foreground": "#FFFFFF", "fieldbackground": "#2E2E2E", "selected": "#0078d4"},
@@ -27,9 +27,6 @@ class CodeEditor:
         self.editor_window = None
         # Configuração de fonte e estilo para o Text widget
         self.text_widget.configure(font=("Courier New", 12))
-        
-        # Adiciona um estilo para destacar a seleção
-        self.text_widget.tag_configure("selection", background="#ADD8E6")  # Cor de fundo azul-claro
         
     def create_widgets(self):
         # Main frame
@@ -116,6 +113,10 @@ class CodeEditor:
         menu_bar.add_cascade(label="Edit", menu=edit_menu)
         edit_menu.add_command(label="Search", command=self.search)
         edit_menu.add_command(label="Search Files/Folders", command=self.search_files_folders)
+        
+        plugins_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Plugins", menu=plugins_menu)
+        plugins_menu.add_command(label="Load Plugin", command=self.load_plugin)
 
         # Update the directory tree
         self.update_treeview()
@@ -130,6 +131,8 @@ class CodeEditor:
         self.text_widget.bind("<Button-3>", self.show_context_menu)
 
         # Connect keyboard shortcuts
+        self.root.bind('<Control-z>', lambda event: self.undo())
+        self.root.bind('<Control-y>', lambda event: self.redo())
         self.root.bind('<Control-s>', lambda event: self.save_file())
         self.root.bind('<Control-Alt-s>', lambda event: self.save_file_as())
         self.root.bind('<Control-o>', lambda event: self.open_directory())
@@ -138,6 +141,34 @@ class CodeEditor:
         
         self.root.bind('<Up>', lambda event: self.navigate_directory(-1))
         self.root.bind('<Down>', lambda event: self.navigate_directory(1))
+    
+    def load_plugin(self):
+        file_path = filedialog.askopenfilename(defaultextension=".py", filetypes=[("Python Files", "*.py"), ("All Files", "*.*")])
+        if file_path:
+            try:
+                # Carrega e executa o código do plugin
+                with open(file_path, "r") as plugin_file:
+                    plugin_code = plugin_file.read()
+                    exec(plugin_code)
+
+                # Fecha a janela atual do iCACode
+                self.root.destroy()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error loading plugin: {str(e)}")
+    
+    def undo(self):
+        if self.undo_stack:
+            last_change = self.undo_stack.pop()
+            self.redo_stack.append(self.text_widget.get("1.0", tk.END))
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert(tk.END, last_change)
+
+    def redo(self):
+        if self.redo_stack:
+            next_change = self.redo_stack.pop()
+            self.undo_stack.append(self.text_widget.get("1.0", tk.END))
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert(tk.END, next_change)
     
     def select_all_text(self, event):
         self.text_widget.tag_add(tk.SEL, "1.0", tk.END)
@@ -240,11 +271,11 @@ class CodeEditor:
         if current_directory != parent_directory:
             os.chdir(parent_directory)
             self.update_treeview()
-            self.root.title(f"iCACode 1.4 - {parent_directory}")
+            self.root.title(f"iCACode 1.5 - {parent_directory}")
 
     def new_file(self):
         self.text_widget.delete("1.0", tk.END)
-        self.root.title("iCACode 1.4")
+        self.root.title("iCACode 1.5")
 
     def open_file(self):
         file_path = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -253,14 +284,14 @@ class CodeEditor:
                 content = file.read()
                 self.text_widget.delete("1.0", tk.END)
                 self.text_widget.insert(tk.END, content)
-                self.root.title(f"iCACode 1.3 - {file_path}")
+                self.root.title(f"iCACode 1.5 - {file_path}")
 
     def save_file(self):
         if hasattr(self, 'current_file'):
             with open(self.current_file, "w") as file:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
-                self.root.title(f"iCACode 1.4 - {self.current_file}")
+                self.root.title(f"iCACode 1.5 - {self.current_file}")
         else:
             self.save_file_as()
 
@@ -271,10 +302,10 @@ class CodeEditor:
                 content = self.text_widget.get("1.0", tk.END)
                 file.write(content)
                 self.current_file = file_path
-                self.root.title(f"iCACode 1.4 - {file_path}")
+                self.root.title(f"iCACode 1.5 - {file_path}")
 
     def show_version(self):
-        tk.messagebox.showinfo("Version", "iCACode 1.4")
+        tk.messagebox.showinfo("Version", "iCACode 1.5")
 
     def update_treeview(self):
         # Clear the existing directory tree
@@ -308,11 +339,11 @@ class CodeEditor:
                     content = file.read()
                     self.text_widget.delete("1.0", tk.END)
                     self.text_widget.insert(tk.END, content)
-                    self.root.title(f"iCACode 1.4 - {item_path}")
+                    self.root.title(f"iCACode 1.5 - {item_path}")
             elif os.path.isdir(item_path):
                 os.chdir(item_path)
                 self.update_treeview()
-                self.root.title(f"iCACode 1.4 - {item_path}")
+                self.root.title(f"iCACode 1.5 - {item_path}")
 
     def delete_file(self):
         # Get the selected item in the directory tree
@@ -366,7 +397,7 @@ class CodeEditor:
         if directory_path:
             os.chdir(directory_path)
             self.update_treeview()
-            self.root.title(f"iCACode 1.4 - {directory_path}")
+            self.root.title(f"iCACode 1.5 - {directory_path}")
 
     def toggle_theme(self):
         # Toggle entre os temas existentes e o tema personalizado
